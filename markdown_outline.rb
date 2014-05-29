@@ -10,18 +10,6 @@ if filename.nil?
   exit 1
 end
 
-def expand_headers(elements)
-  headers = []
-  for e in elements
-    if e.type == :header
-      headers.push("#{'  ' * (e.options[:level] - 1)}* #{e.options[:raw_text]}")
-    end
-  end
-  headers
-end
-
-text = File::open(filename).read
-doc = Kramdown::Document.new(text)
-
-outline = expand_headers(doc.root.children)
-puts outline
+doc = Kramdown::Document.new(File.read(filename))
+puts doc.root.children.select{ |e| e.type == :header }.map{
+      |e| "#{'  ' * (e.options[:level] - 1)}* #{e.options[:raw_text]}"}
