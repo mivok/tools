@@ -8,18 +8,22 @@ require 'fog/core'
 require 'fog/compute'
 require 'fog/aws'
 require 'pry'
-require 'chef_metal/aws_credentials' # Cheat on how to get credentials
+require 'inifile'
 
-aws_credentials = ChefMetal::AWSCredentials.new
-aws_credentials.load_default
+aws_credentials = IniFile.load(
+  File.join(File.expand_path('~'), ".aws", "config"))
 
-creds = aws_credentials.default
-# creds = aws_credentials["profile"]
+if ARGV[0].nil?
+  creds = aws_credentials['default']
+else
+  creds = aws_credentials["profile #{ARGV[0]}"]
+end
 
 compute = Fog::Compute.new({
   :provider => "AWS",
-  :aws_access_key_id => creds[:access_key_id],
-  :aws_secret_access_key => creds[:secret_access_key]
+  :aws_access_key_id => creds['aws_access_key_id'],
+  :aws_secret_access_key => creds['aws_secret_access_key'],
+  :region => creds['region'] || 'us-east-1'
 })
 
 # Gimme shell
