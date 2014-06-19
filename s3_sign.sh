@@ -5,6 +5,7 @@ BUCKET="$1"
 FILE="$2"
 METHOD="GET"
 EXPIRE="1440" # minutes
+[[ -n $3 ]] && EXPIRE=$3
 
 EXPIRETS=$(( $(date +%s) + $EXPIRE * 60 ))
 SIGNATURE=$(echo -en "$METHOD\n\n\n$EXPIRETS\n/$BUCKET/$FILE" | \
