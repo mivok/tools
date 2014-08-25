@@ -48,4 +48,4 @@ card = Trello::Card.create(
   :desc => ARGV[0],
 )
 card.add_attachment(ARGV[0])
-puts "Added"
+puts "Added: #{card.short_url}"
