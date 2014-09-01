@@ -56,7 +56,9 @@ require 'aws-sdk'
 require 'securerandom'
 
 if ARGV[0].nil?
-  puts "Usage: #{$0} URL [KEY]"
+  puts "Usage: #{File.basename($0)} URL [KEY] -- Shorten URL"
+  puts "       #{File.basename($0)} -r KEY    -- Remove shortened URL"
+  puts "       #{File.basename($0)} -l        -- List shortened URLs"
   exit -1
 end
 
@@ -93,6 +95,10 @@ if ARGV[0] == '-r'
   else
     puts "#{url} doesn't exist"
     exit 1
+  end
+elsif ARGV[0] == '-l'
+  b.objects.each do |o|
+    puts "http://#{o.bucket.name}/#{o.key} => #{o.head[:website_redirect_location]}"
   end
 else
   ARGV[0] = "http://#{ARGV[0]}" unless ARGV[0].match('^https?://')
