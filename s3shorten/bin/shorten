@@ -27,6 +27,10 @@
 # - Requirements - a domain used for shortening, hosted with route 53.
 #
 # - Create an S3 bucket with the name of your shortener domain
+#   - Set the index document and error documents to index.html and error.html
+#     respectively.
+#   - You can shorten urls with the keys of 'index.html' and 'error.html' to
+#     set where you want the base domain and any unknown URLs to go to.
 # - Enable static web hosting for the S3 bucket
 # - Note the hostname for the website hosting:
 #       bucket.name.s3-website-us-east-1.amazonaws.com
