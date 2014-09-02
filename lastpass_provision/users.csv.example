@@ -1,0 +1,3 @@
+email,name,groups
+foo@example.com,Foo Barrington,Group1;Group2
+bar@example.com,Barry Baz,Group1;Group3
