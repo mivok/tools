@@ -19,8 +19,8 @@ conn = Faraday.new(:url => url) do |faraday|
   faraday.request :url_encoded
   #faraday.response :logger
   faraday.adapter Faraday.default_adapter
+  faraday.options[:timeout] = 3600
 end
-
 
 users = []
 CSV.foreach("users.csv", :headers => :first_row, :header_converters => :symbol) do |row|
