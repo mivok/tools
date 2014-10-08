@@ -1,0 +1,8 @@
+#!/bin/bash
+# SSH through a host
+# For when you need something quick and dirty to use a gateway host and
+# don't want to change your .ssh/config to do it automatically.
+# Usage: ssh-via proxy.host.name real.host.name [commands]
+GATEWAY_HOST="$1"
+shift
+ssh -t -A "$GATEWAY_HOST" ssh "$@"
