@@ -6,6 +6,6 @@
 
 for h in "$@"; do
     echo -n "$h: "
-    echo | openssl s_client -connect "$h":443 2>&1 | \
+    echo | openssl s_client -connect "$h":443 -servername "$h" 2>&1 | \
         openssl x509 -noout -dates | grep notAfter | awk -F= '{print $2}'
 done
