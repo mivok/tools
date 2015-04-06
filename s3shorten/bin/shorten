@@ -52,7 +52,7 @@
 #
 # - Change the bucket to the name of your S3 bucket created before
 # - If you used an alternative profile in your credentials file (i.e. you
-#   added a section called '[profile myprofile]' to the aws credentials file,
+#   added a section called '[myprofile]' to the aws credentials file,
 #   then change the profile setting in ~/.s3shorten to match.
 
 require 'mixlib/config'
@@ -82,7 +82,7 @@ MyConfig.from_file(File.expand_path('~/.s3shorten'))
 # The default AWS credentials loader looks in this variable for the AWS
 # and this looks to be the least intrusive way to set it.
 if MyConfig.profile != 'default'
-  ENV['AWS_PROFILE'] ||= "profile #{MyConfig.profile}"
+  ENV['AWS_PROFILE'] ||= "#{MyConfig.profile}"
 end
 
 s3 = AWS::S3.new
