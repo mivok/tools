@@ -7,13 +7,13 @@ import subprocess
 import sys
 
 c = ConfigParser.SafeConfigParser()
-c.read(os.path.expanduser('~/.aws/config'))
+c.read(os.path.expanduser('~/.aws/credentials'))
 
 section = sys.argv[1]
 cmd = sys.argv[2:]
 
-if section != 'default':
-    section = 'profile %s' % section
+#if section != 'default':
+#    section = 'profile %s' % section
 
 os.environ['AWS_ACCESS_KEY_ID'] = c.get(section, 'aws_access_key_id')
 os.environ['AWS_SECRET_ACCESS_KEY'] = c.get(section, 'aws_secret_access_key')
