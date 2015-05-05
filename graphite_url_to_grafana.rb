@@ -6,6 +6,19 @@ require 'json'
 
 graphs = []
 
+if ARGV[0].nil?
+  puts "Usage: #{$0} INPUT_FILE [OUTPUT_FILE]"
+  puts
+  puts "INPUT_FILE should be a text file containing graphite URLs, one per line"
+  puts "OUTPUT_FILE is optional, and defaults to INPUT_FILE.json"
+end
+
+output_file = ARGV[1]
+if output_file.nil?
+  # Default to filename.json
+  output_file = "#{File.basename(ARGV[0], File.extname(ARGV[0]))}.json"
+end
+
 File.foreach(ARGV[0]) do |line|
   url = URI(line)
   params = URI.decode_www_form(url.query)
@@ -54,4 +67,7 @@ dashboard = {
   "version" => 1
 }
 
-puts JSON.dump(dashboard)
+File.open(output_file, "w") do |f|
+  f.write(JSON.pretty_generate(dashboard))
+end
+puts "Grafana dashboard written to: #{output_file}"
