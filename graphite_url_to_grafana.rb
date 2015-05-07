@@ -22,6 +22,7 @@ if output_file.nil?
 end
 
 title = "Some dashboard"
+graph_id = 1
 File.foreach(ARGV[0]) do |line|
   unless line.start_with?('http')
     title = line.strip
@@ -30,7 +31,7 @@ File.foreach(ARGV[0]) do |line|
   url = URI(line)
   params = URI.decode_www_form(url.query)
   graph = {
-    "id" => 1,
+    "id" => graph_id,
     "targets" => [
       #{ "target": "..." }
     ],
@@ -39,6 +40,7 @@ File.foreach(ARGV[0]) do |line|
     "type" => "graph",
     "span" => 6 # Half of the width of the screen
   }
+  graph_id += 1
   params.each do |k, v|
     case k
     when "target"
