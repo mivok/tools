@@ -11,6 +11,8 @@ if ARGV[0].nil?
   puts
   puts "INPUT_FILE should be a text file containing graphite URLs, one per line"
   puts "OUTPUT_FILE is optional, and defaults to INPUT_FILE.json"
+  puts
+  puts "Optionally, the first line of the file can be a title for the dashboard"
 end
 
 output_file = ARGV[1]
@@ -19,7 +21,12 @@ if output_file.nil?
   output_file = "#{File.basename(ARGV[0], File.extname(ARGV[0]))}.json"
 end
 
+title = "Some dashboard"
 File.foreach(ARGV[0]) do |line|
+  unless line.start_with?('http')
+    title = line.strip
+    next
+  end
   url = URI(line)
   params = URI.decode_www_form(url.query)
   graph = {
@@ -27,6 +34,7 @@ File.foreach(ARGV[0]) do |line|
     "targets" => [
       #{ "target": "..." }
     ],
+    "grid" => {},
     "title" => "A graph",
     "type" => "graph",
     "span" => 6 # Half of the width of the screen
@@ -39,7 +47,12 @@ File.foreach(ARGV[0]) do |line|
       graph["title"] = v
     when "vtitle"
       graph["leftYAxisLabel"] = v
-    when "from", "width", "height", "until", "areaMode", "hideLegend"
+    when "yMin"
+      graph["grid"]["leftMin"] = v
+    when "yMax"
+      graph["grid"]["leftMax"] = v
+    when "from", "width", "height", "until", "areaMode", "hideLegend",
+      "drawNullAsZero", "lineWidth", "lineMode"
       # We ignore these
     when /[0-9]+/
       # Ignore this too (timestamp/cache buster)
@@ -50,7 +63,6 @@ File.foreach(ARGV[0]) do |line|
   graphs << graph
 end
 
-# TODO - convert the graphs into rows and generate the json
 rows = []
 graphs.each_slice(2) do |panels|
   rows << {
@@ -61,7 +73,7 @@ graphs.each_slice(2) do |panels|
 end
 
 dashboard = {
-  "title" => "Some Dashboard",
+  "title" => title,
   "rows" => rows,
   "schemaVersion" => 6,
   "version" => 1
