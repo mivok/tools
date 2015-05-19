@@ -1,4 +1,7 @@
 #!/usr/bin/env ruby
+# Upload a grafana dashboard json file.
+# Usage: grafana_upload.rb URL FILENAME
+# Note: this requires a grafana api token to be stored in ~/.grafanatoken
 require 'json'
 require 'net/http'
 require 'uri'
