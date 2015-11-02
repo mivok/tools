@@ -72,6 +72,11 @@ class s3shell(cmd.Cmd):
         self.aws_s3("cp %s %s" % (self.full_path(filename), local_file[1]))
         return local_file[1]
 
+    def do_debug(self, line):
+        """Toggle debug mode"""
+        self.debug = not self.debug
+        print "Debug mode: %s" % (self.debug and "On" or "Off")
+
     def do_profile(self, line):
         """Show/changes the current AWS profile
 
@@ -101,7 +106,12 @@ class s3shell(cmd.Cmd):
 
         Usage: ls
         """
-        self.aws_s3("ls %s" % self.baseurl())
+        if not line:
+            self.aws_s3("ls %s" % self.baseurl())
+        else:
+            parts = shlex.split(line)
+            filename = parts[0]
+            self.aws_s3("ls %s" % self.full_path(filename))
 
     def do_cd(self, line):
         """Change the current (remote) directory.
@@ -165,14 +175,30 @@ class s3shell(cmd.Cmd):
         os.remove(local_file)
 
     def do_cp(self, line):
-        # TODO - this is remote to remote cp, prepend baseurl to each part. We
-        # need to split based on shlex first though.
-        #aws_s3("cp %s" % line)
-        pass
+        """Copy files (remotely)
+
+        Usage: cp FILENAME1 FILENAME2
+        """
+        parts = shlex.split(line)
+        if len(parts) < 2:
+            print "Error: Missing filename"
+            self.do_help('cp')
+            return
+        self.aws_s3("cp %s" % ' '.join([
+            "'%s'" % self.full_path(p) for p in parts]))
 
     def do_mv(self, line):
-        #aws_s3("mv %s" % line)
-        pass
+        """Move/rename files (remotely)
+
+        Usage: cp FILENAME1 FILENAME2
+        """
+        parts = shlex.split(line)
+        if len(parts) < 2:
+            print "Error: Missing filename"
+            self.do_help('mv')
+            return
+        self.aws_s3("mv %s" % ' '.join([
+            "'%s'" % self.full_path(p) for p in parts]))
 
     def do_rm(self, line):
         """Delete a file from S3
