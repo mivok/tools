@@ -113,6 +113,15 @@ class s3shell(cmd.Cmd):
             filename = parts[0]
             self.aws_s3("ls %s" % self.full_path(filename))
 
+    def do_lls(self, line):
+        """Run ls locally
+
+        Usage: ls [PARAMS]
+
+        Passes all parameters to the regular ls command
+        """
+        os.system("ls %s" % line)
+
     def do_cd(self, line):
         """Change the current (remote) directory.
 
@@ -142,6 +151,22 @@ class s3shell(cmd.Cmd):
             if not self.cwd.endswith('/'):
                 self.cwd = '%s/' % self.cwd
         self.update_prompt()
+
+    def do_lcd(self, line):
+        """Change the current local directory.
+
+        Usage: lcd DIRECTORY
+
+        If no directory is given, change to home directory"""
+        if line:
+            os.chdir(line)
+        else:
+            os.chdir(os.environ['HOME'])
+        print "Changed local directory to: %s" % os.getcwd()
+
+    def do_lpwd(self, line):
+        """Print the current local working directory"""
+        print os.getcwd()
 
     def do_cat(self, line):
         """Display the contents of a file stored in S3
