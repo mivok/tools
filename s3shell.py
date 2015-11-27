@@ -29,6 +29,7 @@ import cmd
 import inspect
 import os
 import shlex
+import subprocess
 import sys
 import tempfile
 
@@ -39,8 +40,31 @@ class s3shell(cmd.Cmd):
         self.profile = args.profile
         self.cwd = '/'
         self.debug = args.debug
+        self.cache = {}
         self.update_prompt()
         cmd.Cmd.__init__(self)
+
+    def filename_complete(self, text, line, begidx, endidx, dir_only=False):
+        url = self.s3url()
+        if url not in self.cache:
+            # Run an ls to find out files if we don't have them in cache
+            output = self.aws_s3("ls %s" % url, display_output=False)
+            self.update_completion_cache(output, url)
+        matches = [i for i in self.cache[url]['dirs'] if i.startswith(text)]
+        if not dir_only:
+            matches.extend([i for i in self.cache[url]['files'] if
+                            i.startswith(text)])
+        return matches
+
+    def update_completion_cache(self, output, url):
+        # Update the autocomplete cache
+        self.cache[url] = {'dirs': [], 'files': []}
+        for line in output.split('\n'):
+            filename = line[31:].strip()
+            if filename.endswith('/'):
+                self.cache[url]['dirs'].append(filename)
+            else:
+                self.cache[url]['files'].append(filename)
 
     def emptyline(self):
         # Don't do anything when a blank command is entered.
@@ -49,23 +73,31 @@ class s3shell(cmd.Cmd):
     def update_prompt(self):
         self.prompt = "%s%s> " % (self.bucket, self.cwd)
 
-    def aws_s3(self, cmd):
+    def aws_s3(self, cmd, display_output=True):
         if self.bucket == '':
             print "No bucket selected"
             return
         full_cmd = "aws --profile %s s3 %s" % (self.profile, cmd)
         if self.debug:
             print full_cmd
-        os.system(full_cmd)
+        try:
+            output = subprocess.check_output(full_cmd, shell=True)
+        except subprocess.CalledProcessError, e:
+            output = e.output
+        if display_output:
+            sys.stdout.write(output)
+        return output
 
-    def baseurl(self):
-        return "s3://%s%s" % (self.bucket, self.cwd)
+    def s3url(self, dirname=None):
+        if dirname is None:
+            dirname = self.cwd
+        return "s3://%s%s" % (self.bucket, dirname)
 
     def full_path(self, filename):
         if filename.startswith("s3://") or filename.startswith("/"):
             return filename
         else:
-            return "%s%s" % (self.baseurl(), filename)
+            return "%s%s" % (self.s3url(), filename)
 
     def download_temp(self, filename):
         local_file = tempfile.mkstemp()
@@ -107,11 +139,12 @@ class s3shell(cmd.Cmd):
         Usage: ls
         """
         if not line:
-            self.aws_s3("ls %s" % self.baseurl())
+            output = self.aws_s3("ls %s" % self.s3url())
+            self.update_completion_cache(output, self.s3url())
         else:
             parts = shlex.split(line)
             filename = parts[0]
-            self.aws_s3("ls %s" % self.full_path(filename))
+            output = self.aws_s3("ls %s" % self.full_path(filename))
 
     def do_lls(self, line):
         """Run ls locally
@@ -137,6 +170,8 @@ class s3shell(cmd.Cmd):
         else:
             parts = line.split('/')
             cwd = self.cwd[1:].split('/')
+            if cwd[-1] == '':
+                cwd = cwd[:-1]
             if cwd == ['']:
                 cwd = []
             for part in parts:
@@ -151,6 +186,9 @@ class s3shell(cmd.Cmd):
             if not self.cwd.endswith('/'):
                 self.cwd = '%s/' % self.cwd
         self.update_prompt()
+
+    def complete_cd(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx, dir_only=True)
 
     def do_lcd(self, line):
         """Change the current local directory.
@@ -211,6 +249,10 @@ class s3shell(cmd.Cmd):
             return
         self.aws_s3("cp %s" % ' '.join([
             "'%s'" % self.full_path(p) for p in parts]))
+        self.cache = {} # Naively clear cache
+
+    def complete_cp(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
 
     def do_mv(self, line):
         """Move/rename files (remotely)
@@ -224,6 +266,10 @@ class s3shell(cmd.Cmd):
             return
         self.aws_s3("mv %s" % ' '.join([
             "'%s'" % self.full_path(p) for p in parts]))
+        self.cache = {} # Naively clear cache
+
+    def complete_mv(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
 
     def do_rm(self, line):
         """Delete a file from S3
@@ -237,6 +283,10 @@ class s3shell(cmd.Cmd):
         parts = shlex.split(line)
         filename = parts[0]
         self.aws_s3("rm '%s'" % self.full_path(filename))
+        self.cache = {} # Naively clear cache
+
+    def complete_rm(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
 
     def do_get(self, line):
         """Download a file from S3
@@ -251,6 +301,9 @@ class s3shell(cmd.Cmd):
         filename = parts[0]
         self.aws_s3("cp '%s' ." % (self.full_path(filename)))
 
+    def complete_get(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
+
     def do_put(self, line):
         """Upload a file to S3
 
@@ -262,7 +315,16 @@ class s3shell(cmd.Cmd):
             return
         parts = shlex.split(line)
         filename = parts[0]
-        self.aws_s3("cp '%s' '%s'" % (filename, self.baseurl()))
+        self.aws_s3("cp '%s' '%s'" % (filename, self.s3url()))
+        self.cache = {} # Naively clear cache
+
+    def do_vi(self, line):
+        """Alias for edit"""
+        self.do_edit(line)
+
+    def do_vim(self, line):
+        """Alias for edit"""
+        self.do_edit(line)
 
     def do_edit(self, line):
         """Edit a file locally using a text editor.
@@ -290,6 +352,15 @@ class s3shell(cmd.Cmd):
         else:
             print "File wasn't modified. Not uploading."
         os.remove(local_file)
+
+    def complete_edit(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
+
+    def complete_vi(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
+
+    def complete_vim(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
 
     def do_EOF(self, line):
         """Exit the program with ^D"""
