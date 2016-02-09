@@ -40,6 +40,7 @@ class s3shell(cmd.Cmd):
         self.profile = args.profile
         self.cwd = '/'
         self.debug = args.debug
+        self.dry_run = args.dry_run
         self.cache = {}
         self.update_prompt()
         cmd.Cmd.__init__(self)
@@ -80,13 +81,14 @@ class s3shell(cmd.Cmd):
         full_cmd = "aws --profile %s s3 %s" % (self.profile, cmd)
         if self.debug:
             print full_cmd
-        try:
-            output = subprocess.check_output(full_cmd, shell=True)
-        except subprocess.CalledProcessError, e:
-            output = e.output
-        if display_output:
-            sys.stdout.write(output)
-        return output
+        if not self.dry_run:
+            try:
+                output = subprocess.check_output(full_cmd, shell=True)
+            except subprocess.CalledProcessError, e:
+                output = e.output
+            if display_output:
+                sys.stdout.write(output)
+            return output
 
     def s3url(self, dirname=None):
         if dirname is None:
@@ -108,6 +110,11 @@ class s3shell(cmd.Cmd):
         """Toggle debug mode"""
         self.debug = not self.debug
         print "Debug mode: %s" % (self.debug and "On" or "Off")
+
+    def do_dry_run(self, line):
+        """Toggle dry run mode"""
+        self.dry_run = not self.dry_run
+        print "Dry run mode: %s" % (self.dry_run and "On" or "Off")
 
     def do_profile(self, line):
         """Show/changes the current AWS profile
@@ -222,6 +229,9 @@ class s3shell(cmd.Cmd):
             print fh.read()
         os.remove(local_file)
 
+    def complete_cat(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
+
     def do_less(self, line):
         """Display the contents of a file stored in S3 with less
 
@@ -236,6 +246,9 @@ class s3shell(cmd.Cmd):
         local_file = self.download_temp(filename)
         os.system('less "%s"' % local_file)
         os.remove(local_file)
+
+    def complete_less(self, text, line, begidx, endidx):
+        return self.filename_complete(text, line, begidx, endidx)
 
     def do_cp(self, line):
         """Copy files (remotely)
@@ -362,6 +375,18 @@ class s3shell(cmd.Cmd):
     def complete_vim(self, text, line, begidx, endidx):
         return self.filename_complete(text, line, begidx, endidx)
 
+    def do_mb(self, line):
+        """Make a new bucket"""
+        parts = shlex.split(line)
+        bucket_name = parts[0]
+        self.aws_s3("mb 's3://%s'" % bucket_name)
+
+    def do_rb(self, line):
+        """Make a new bucket"""
+        parts = shlex.split(line)
+        bucket_name = parts[0]
+        self.aws_s3("rb 's3://%s'" % bucket_name)
+
     def do_EOF(self, line):
         """Exit the program with ^D"""
         print
@@ -395,6 +420,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='S3 interactive shell')
     parser.add_argument('--profile', default='default')
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--bucket', default='')
     args = parser.parse_args()
     c = s3shell(args)
