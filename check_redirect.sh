@@ -10,6 +10,7 @@
 # Response: 200
 
 curl -o /dev/null -L -v "$@" 2>&1 | awk '
+    /^\* Connected to .* \([0-9.]+\)/ { print "IP: " $5 }
     /^< HTTP\/1.1 3/ { printf "%s ", $3 }
     /^< HTTP\/1.1 [^3]/ { print "Response: " $3 }
     /^< Location:/ { print $3 }
