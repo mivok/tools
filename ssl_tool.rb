@@ -7,11 +7,7 @@ require 'mixlib/cli'
 class AppCLI
   include Mixlib::CLI
 
-  option :host,
-    :short => "-h HOST",
-    :long => "--host HOST",
-    :required => true,
-    :description => "Hostname to connect to"
+  banner "Usage: #{File.basename($0)} [options] HOSTNAME"
 
   option :port,
     :short => "-p PORT",
@@ -120,7 +116,13 @@ class CertInspector
 end
 
 cli = AppCLI.new
-cli.parse_options
+argv = cli.parse_options
+cli.config[:host] = argv[0]
+if cli.config[:host].nil?
+  puts "You must specify a hostname"
+  puts cli.opt_parser
+  exit 1
+end
 if cli.config[:all]
   cli.config[:format] = 'header,cn,san,expiry,chain,verifychain'
 end
