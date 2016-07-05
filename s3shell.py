@@ -28,6 +28,7 @@ import argparse
 import cmd
 import inspect
 import os
+import readline
 import shlex
 import subprocess
 import sys
@@ -43,6 +44,9 @@ class s3shell(cmd.Cmd):
         self.dry_run = args.dry_run
         self.cache = {}
         self.update_prompt()
+        # Fix broken completion on filenames with '-' in
+        readline.set_completer_delims(
+            readline.get_completer_delims().replace('-', ''))
         cmd.Cmd.__init__(self)
 
     def filename_complete(self, text, line, begidx, endidx, dir_only=False):
