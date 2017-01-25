@@ -22,6 +22,19 @@ tf_files.each do |f|
   # Convert terraform_remote_state.foo.output.bar to
   # terraform_remote_state.foo.bar
   content.gsub!(/terraform_remote_state\.([a-zA-Z0-9_-]+)\.output\.([a-zA-Z0-9_-]+)/m, 'terraform_remote_state.\1.\2')
+  # Convert some resources to data sources
+  data_sources = [
+    "atlas_artifact",
+    "template_file",
+    "template_cloudinit_config",
+    "tls_cert_request",
+    "terraform_remote_state"
+  ]
+  data_sources.each do |d|
+    content.gsub!(/resource "#{d}"/, "data \"#{d}\"")
+    content.gsub!(/\{#{d}\./, "{data.#{d}.")
+  end
+
   if content != orig_content
     puts f
     File.write(f, content)
