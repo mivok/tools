@@ -32,7 +32,7 @@ tf_files.each do |f|
   ]
   data_sources.each do |d|
     content.gsub!(/resource "#{d}"/, "data \"#{d}\"")
-    content.gsub!(/\#{d}\./, "data.#{d}.")
+    content.gsub!(/#{d}\./, "data.#{d}.")
   end
 
   if content != orig_content
