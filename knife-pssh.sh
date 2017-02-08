@@ -24,5 +24,6 @@ pssh \
     -O 'StrictHostKeyChecking no' \
     --host "$HOSTS" \
     --par 5\
+    --timeout 3600 \
     --inline \
     "$@"
