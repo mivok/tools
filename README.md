@@ -4,6 +4,7 @@ A collection of small scripts I've found useful
 
 ## Directories
 
+* backup - backup scripts for various apps on my laptop
 * boneyard - old scripts that are no longer valid or useful any more
 * grafana - tools for working with grafana
 * misc - scripts that don't have a better place for them yet
@@ -20,5 +21,5 @@ using GNU stow:
 # Requires shopt -s extglob in bash
 stow -v -t ~/bin !(boneyard)/
 # Or, for individual directories
-stow -v -t ~/bin grafana misc s3 ssh web
+stow -v -t ~/bin backup grafana misc s3 ssh web
 ```
