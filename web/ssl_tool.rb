@@ -25,7 +25,7 @@ class AppCLI
   option :format,
     :short => "-o FMT",
     :long => "--output FMT",
-    :default => "header,cn,san",
+    :default => "header,subject,cn,san",
     :description => "Specify what fields to display"
 
   option :all,
@@ -74,25 +74,77 @@ class CertInspector
     certs
   end
 
+  def pretty_print_extension(e)
+    values = e.value.split("\n")
+    if values.length == 1
+      puts "#{e.oid}: #{values[0]}"
+    else
+      puts "#{e.oid}:"
+      values.each {|v| puts "    #{v}" unless v.empty?}
+    end
+  end
+
   def print_cert_info(certs)
     cert = certs[0] # Get the first certificate in the chain
     @config[:format].split(',').map{|f| f.downcase}.each do |fmt|
       case fmt
       when "header"
         puts "==> #{@config[:host]}"
+      when "algorithm", "signature_algorithm"
+        puts "Signature algorithm: #{cert.signature_algorithm}"
+      when "chain"
+        puts "Certificate chain:"
+        certs.each do |c|
+          puts "    #{c.subject}"
+        end
       when "cn"
         puts "CN: #{cert.subject.to_a.find {|i| i[0] == "CN"}[1]}"
+      when "expiry", "not_after"
+        puts "Not After: #{cert.not_after}"
+      when "extension_allexceptsan"
+        # Print all extensions, but exclude SAN because we format it nicer
+        # elsewhere
+        cert.extensions.each do |e|
+          next if e.oid == "subjectAltName"
+          pretty_print_extension(e)
+        end
+      when "extension_all"
+        cert.extensions.each do |e|
+          pretty_print_extension(e)
+        end
+      when /^extension_/
+        # Get extension mame in camelCase format
+        ext_name = fmt.sub("extension_", "").gsub(/_(.)/) {|s| $1.upcase}
+        ext = cert.extensions.find{|e| e.oid == ext_name}
+        if ext.nil?
+          puts "#{ext_name}: Not found"
+        else
+          pretty_print_extension(ext)
+        end
+      when "issuer"
+        puts "Issuer: #{cert.issuer}"
+      when "public_key"
+        puts "Public Key:"
+        puts cert.public_key
+      when "modulus"
+        puts "Modulus: #{cert.public_key.n.to_s(16)}"
+      when "exponent"
+        puts "Exponent: #{cert.public_key.e}"
       when "san"
         san_ext = cert.extensions.find {|e| e.oid == 'subjectAltName'}
         if san_ext.nil?
           puts "subjectAltNames: No SANs present"
         else
-          san_domains = san_ext.to_a[1].split(', ').map{|i| i.sub('DNS:','') }
+          san_domains = san_ext.value.split(', ').map{|i| i.sub('DNS:','') }
           puts "subjectAltNames:"
           san_domains.each {|d| puts "    #{d}"}
         end
-      when "expiry"
-        puts "expiry: #{cert.not_after}"
+      when "serial", "serial_number"
+        puts "Serial: #{cert.serial}"
+      when "start", "not_before"
+        puts "Not Before: #{cert.not_before}"
+      when "subject"
+        puts "Subject: #{cert.subject}"
       when "verifychain"
         valid = true
         parent = nil
@@ -103,11 +155,12 @@ class CertInspector
           parent = c
         end
         puts "Chain Valid: #{valid}"
-      when "chain"
-        puts "Certificate chain:"
-        certs.each do |c|
-          puts "    #{c.subject}"
-        end
+      when "version"
+        puts "Version: #{cert.version}"
+      when "pry"
+        # For debugging or custom fields
+        require 'pry'
+        binding.pry
       else
         puts "Unknown format column: #{fmt}"
       end
@@ -124,7 +177,7 @@ if cli.config[:host].nil?
   exit 1
 end
 if cli.config[:all]
-  cli.config[:format] = 'header,cn,san,expiry,chain,verifychain'
+  cli.config[:format] = 'header,version,serial,algorithm,chain,verifychain,not_before,not_after,subject,modulus,exponent,san,extension_allexceptsan'
 end
 if cli.config[:expiry]
   cli.config[:format] = 'expiry'
