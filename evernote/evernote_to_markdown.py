@@ -20,6 +20,30 @@ import xml.etree.ElementTree as ET
 import html2text
 import bs4
 
+def tag_callback(self, tag, attrs, start):
+    """This lets us override existing functionality in html2text"""
+    if tag == 'li':
+        # The only change from html2text here is the indentation of the list
+        # (I want lists to start at column 1)
+        self.pbr()
+        if start:
+            if self.list:
+                li = self.list[-1]
+            else:
+                li = {'name': 'ul', 'num': 0}
+            if self.google_doc:
+                nest_count = self.google_nest_count(tag_style)
+            else:
+                nest_count = len(self.list)
+            self.o("  " * (nest_count - 1))
+            if li['name'] == "ul":
+                self.o(self.ul_item_mark + " ")
+            elif li['name'] == "ol":
+                li['num'] += 1
+                self.o(str(li['num']) + ". ")
+            self.start = 1
+        return True
+
 def process_content(text):
     soup = bs4.BeautifulSoup(text, "html.parser")
 
@@ -42,6 +66,21 @@ def process_content(text):
         if len(b.parent.contents) == 1: # Only child
             b.extract()
 
+    # Fix badly nested lists
+    # This makes <ul><li>Item</li><ul>.... into <ul><li>Item<ul>...</li>
+    nested_lists = soup.select('ul > ul')
+    for u in nested_lists:
+        prev = u.previous_sibling
+        if prev and prev.name == 'li':
+            # Fold the ul into the previous li element
+            prev.append(u.extract())
+        else:
+            # There isn't a previous li item to fold into, which means we
+            # ended up with a list that was nested two levels at once. This is
+            # probably a mistake, so make sure the list level only indents one
+            # level at once.
+            u.unwrap()
+
     # Fix fake/bold headings
     bold_headers = soup.select('div span[style="font-weight: bold;"],b')
     for h in bold_headers:
@@ -51,14 +90,23 @@ def process_content(text):
             if h.parent.name == 'div':
                 text = h.text
                 p = h.parent
-                p.name = 'h2'
-                p.clear()
-                p.append(text)
+                if text.strip() != '':
+                    # Only add non-blank headers
+                    p.name = 'h2'
+                    p.clear()
+                    p.append(text)
+                else:
+                    # If we have an empty line of bold text, it isn't a header
+                    # and should just be removed
+                    p.extract()
+
+    #print(soup.prettify())
 
     ## Do the conversion here
     text_maker = html2text.HTML2Text()
     text_maker.single_line_break = True
     text_maker.inline_links = False
+    text_maker.tag_callback = tag_callback
 
     markdown = text_maker.handle(str(soup))
 
@@ -67,11 +115,14 @@ def process_content(text):
     # Convert indented code blocks to code fences
     lines = []
     in_code = False
+    prev_line = ''
     for line in markdown.split("\n"):
         if line[0:4] == '    ':
             if in_code:
                 lines.append(line[4:])
-            else:
+            elif prev_line != '':
+                lines.append(line)
+            else: # Code should have a blank line before it
                 lines.append('```')
                 # html2text likes to add a blank line at the beginning of code
                 # blocks, so make sure we skip it if it's present
@@ -87,6 +138,7 @@ def process_content(text):
                     lines.append('')
                 in_code = False
             lines.append(line)
+        prev_line = line
 
     markdown = "\n".join(lines)
 
