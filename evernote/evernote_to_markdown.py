@@ -166,8 +166,12 @@ if __name__ == '__main__':
                 note.setdefault('tags', []).append(child.text)
             elif child.tag == 'content':
                 note['markdown'] = process_content(child.text)
-        print(note['title'])
-        fh = open("%s.md" % note['title'], "w")
+        filename = "%s.md" % note['title']
+        filename = filename.replace("/", "_")
+        filename = filename.replace('"', '')
+
+        print(filename)
+        fh = open(filename, "w")
         fh.write("# %s\n\nTags: %s\n\n%s" % (
             note['title'],
             ' '.join(["#%s" % i for i in note['tags']]),
