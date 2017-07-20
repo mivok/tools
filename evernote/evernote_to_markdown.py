@@ -172,8 +172,7 @@ if __name__ == '__main__':
 
         print(filename)
         fh = open(filename, "w")
-        fh.write("# %s\n\nTags: %s\n\n%s" % (
+        fh.write("# %s\n\n%s" % (
             note['title'],
-            ' '.join(["#%s" % i for i in note['tags']]),
             note['markdown']
         ))
