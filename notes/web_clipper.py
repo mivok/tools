@@ -3,6 +3,9 @@
 #
 # To install dependencies: pip3 install requests html2text pyperclip
 #
+# To get an API key: go to https://mercury.postlight.com/ and sign up, then
+# drop the key in ~/.mercuryapikey
+#
 from __future__ import print_function
 
 import os
