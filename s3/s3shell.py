@@ -82,7 +82,10 @@ class s3shell(cmd.Cmd):
         if self.bucket == '':
             print "No bucket selected"
             return
-        full_cmd = "aws --profile %s s3 %s" % (self.profile, cmd)
+        profile_str = ''
+        if self.profile != '':
+            profile_str = "--profile %s" % (self.profile)
+        full_cmd = "aws %s s3 %s" % (profile_str, cmd)
         if self.debug:
             print full_cmd
         if not self.dry_run:
@@ -422,7 +425,7 @@ class s3shell(cmd.Cmd):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='S3 interactive shell')
-    parser.add_argument('--profile', default='default')
+    parser.add_argument('--profile', default='')
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--bucket', default='')
