@@ -80,22 +80,22 @@ class s3shell(cmd.Cmd):
 
     def aws_s3(self, cmd, display_output=True):
         if self.bucket == '':
-            print "No bucket selected"
+            print("No bucket selected")
             return
         profile_str = ''
         if self.profile != '':
             profile_str = "--profile %s" % (self.profile)
         full_cmd = "aws %s s3 %s" % (profile_str, cmd)
         if self.debug:
-            print full_cmd
+            print(full_cmd)
         if not self.dry_run:
             try:
                 output = subprocess.check_output(full_cmd, shell=True)
-            except subprocess.CalledProcessError, e:
+            except subprocess.CalledProcessError as e:
                 output = e.output
             if display_output:
-                sys.stdout.write(output)
-            return output
+                sys.stdout.write(output.decode())
+            return output.decode()
 
     def s3url(self, dirname=None):
         if dirname is None:
@@ -116,12 +116,12 @@ class s3shell(cmd.Cmd):
     def do_debug(self, line):
         """Toggle debug mode"""
         self.debug = not self.debug
-        print "Debug mode: %s" % (self.debug and "On" or "Off")
+        print("Debug mode: %s" % (self.debug and "On" or "Off"))
 
     def do_dry_run(self, line):
         """Toggle dry run mode"""
         self.dry_run = not self.dry_run
-        print "Dry run mode: %s" % (self.dry_run and "On" or "Off")
+        print("Dry run mode: %s" % (self.dry_run and "On" or "Off"))
 
     def do_profile(self, line):
         """Show/changes the current AWS profile
@@ -133,7 +133,7 @@ class s3shell(cmd.Cmd):
         """
         if line != '':
             self.profile = line
-        print "Profile set to: %s" % line
+        print("Profile set to: %s" % line)
 
     def do_bucket(self, line):
         """Change the current bucket name
@@ -144,7 +144,7 @@ class s3shell(cmd.Cmd):
             self.bucket = line
             self.update_prompt()
         else:
-            print "Error: Missing bucket name"
+            print("Error: Missing bucket name")
             self.do_help('bucket')
 
     def do_ls(self, line):
@@ -214,11 +214,11 @@ class s3shell(cmd.Cmd):
             os.chdir(line)
         else:
             os.chdir(os.environ['HOME'])
-        print "Changed local directory to: %s" % os.getcwd()
+        print("Changed local directory to: %s" % os.getcwd())
 
     def do_lpwd(self, line):
         """Print the current local working directory"""
-        print os.getcwd()
+        print(os.getcwd())
 
     def do_cat(self, line):
         """Display the contents of a file stored in S3
@@ -226,14 +226,14 @@ class s3shell(cmd.Cmd):
         Usage: cat FILENAME
         """
         if not line:
-            print "Error: Missing filename"
+            print("Error: Missing filename")
             self.do_help('cat')
             return
         parts = shlex.split(line)
         filename = parts[0]
         local_file = self.download_temp(filename)
         with open(local_file) as fh:
-            print fh.read()
+            print(fh.read())
         os.remove(local_file)
 
     def complete_cat(self, text, line, begidx, endidx):
@@ -245,7 +245,7 @@ class s3shell(cmd.Cmd):
         Usage: less FILENAME
         """
         if not line:
-            print "Error: Missing filename"
+            print("Error: Missing filename")
             self.do_help('less')
             return
         parts = shlex.split(line)
@@ -264,7 +264,7 @@ class s3shell(cmd.Cmd):
         """
         parts = shlex.split(line)
         if len(parts) < 2:
-            print "Error: Missing filename"
+            print("Error: Missing filename")
             self.do_help('cp')
             return
         self.aws_s3("cp %s" % ' '.join([
@@ -281,7 +281,7 @@ class s3shell(cmd.Cmd):
         """
         parts = shlex.split(line)
         if len(parts) < 2:
-            print "Error: Missing filename"
+            print("Error: Missing filename")
             self.do_help('mv')
             return
         self.aws_s3("mv %s" % ' '.join([
@@ -297,7 +297,7 @@ class s3shell(cmd.Cmd):
         Usage: rm FILENAME
         """
         if not line:
-            print "Error: Missing filename"
+            print("Error: Missing filename")
             self.do_help('rm')
             return
         parts = shlex.split(line)
@@ -314,7 +314,7 @@ class s3shell(cmd.Cmd):
         Usage: get FILENAME
         """
         if not line:
-            print "Error: Missing filename"
+            print("Error: Missing filename")
             self.do_help('get')
             return
         parts = shlex.split(line)
@@ -330,7 +330,7 @@ class s3shell(cmd.Cmd):
         Usage: put FILENAME
         """
         if not line:
-            print "Error: Missing filename"
+            print("Error: Missing filename")
             self.do_help('put')
             return
         parts = shlex.split(line)
@@ -355,7 +355,7 @@ class s3shell(cmd.Cmd):
         use, or defaults to 'vi' if the editor isn't set.
         """
         if not line:
-            print "Error: Missing filename"
+            print("Error: Missing filename")
             self.do_help('edit')
             return
         parts = shlex.split(line)
@@ -370,7 +370,7 @@ class s3shell(cmd.Cmd):
             # File was modified, let's upload it
             self.aws_s3("cp '%s' '%s'" % (local_file, self.full_path(filename)))
         else:
-            print "File wasn't modified. Not uploading."
+            print("File wasn't modified. Not uploading.")
         os.remove(local_file)
 
     def complete_edit(self, text, line, begidx, endidx):
@@ -396,7 +396,7 @@ class s3shell(cmd.Cmd):
 
     def do_EOF(self, line):
         """Exit the program with ^D"""
-        print
+        print()
         sys.exit(0)
 
     def do_exit(self, line):
@@ -411,13 +411,13 @@ class s3shell(cmd.Cmd):
             try:
                 doc = getattr(self, 'do_' + arg).__doc__
                 if doc:
-                    print "Help for %s:" % arg
-                    print inspect.cleandoc(doc)
-                    print
+                    print("Help for %s:" % arg)
+                    print(inspect.cleandoc(doc))
+                    print()
                 else:
-                    print self.nohelp % arg
+                    print(self.nohelp % arg)
             except AttributeError:
-                print self.nohelp % arg
+                print(self.nohelp % arg)
         else:
             # Default behavior for a help command without args
             cmd.Cmd.do_help(self, arg)
