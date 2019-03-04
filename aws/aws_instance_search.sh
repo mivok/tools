@@ -1,5 +1,38 @@
 #!/bin/bash
 # Search for instances matching given criteria
+#
+# # Search by instance name
+# $ aws_instance_search.sh example
+# i-0123456789abcdef0    172.31.1.43    example-acceptance
+# i-0123456789abcdef1    172.31.0.11    example-acceptance
+# i-0123456789abcdef2    172.31.1.24    example-production
+# i-0123456789abcdef3    172.31.0.62    example-production
+#
+# # Search by private IP
+# $ aws_instance_search.sh 172.31.1.4
+# i-a123456789abcdef0    172.31.1.4     otherserver-production
+# i-0123456789abcdef0    172.31.1.43    example-acceptance
+#
+# # -x means only return exact matches
+# $ aws_instance_search.sh -x 172.31.1.4
+# i-a123456789abcdef0    172.31.1.4     otherserver-production
+#
+# # -i means show the public IP address
+# $ aws_instance_search.sh -i -x 172.31.1.4
+# i-a123456789abcdef0    33.33.33.123   otherserver-production
+#
+# # Search by public IP (non-rfc1918 addresses search public IP field instead)
+# $ aws_instance_search.sh 33.33.33.123
+# i-a123456789abcdef0    33.33.33.123   otherserver-production
+#
+# # Search by (partial) instance ID
+# $ aws_instance_search.sh i-a1234
+# i-a123456789abcdef0    172.31.1.4     otherserver-production
+#
+# # Search by custom filter key
+# $ aws_instance_search.sh -f X-Environment testing
+# i-0123456789abcdef9    172.31.3.4     myserver-testing
+
 EXACTMATCH=
 REVERSE_IP_DISPLAY=
 FILTERKEY=
