@@ -12,7 +12,7 @@ fi
 HOSTS=$(
     aws ec2 describe-instances \
     --filters "Name=tag:Name,Values=*$1*" | \
-    jq -r '.Reservations[].Instances[] | .PrivateIpAddress'
+    jq -r '.Reservations[].Instances[] | .PrivateIpAddress | select(. != null)'
 )
 shift
 
