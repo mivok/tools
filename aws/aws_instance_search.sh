@@ -85,7 +85,10 @@ shift $((OPTIND-1))
 
 PATTERN="$1"
 
-[[ -z $1 ]] && usage
+if [[ -z $1 ]]; then
+    usage
+    exit 1
+fi
 
 # Decide what to search for based on input heuristic
 if [[ -z $FILTERKEY || $FILTERKEY == "auto" ]]; then
