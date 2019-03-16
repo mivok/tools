@@ -1,0 +1,20 @@
+#!/bin/bash
+SCRIPTDIR="$HOME/.tmux/scripts"
+
+if [[ -z $1 ]]; then
+    echo "Usage: $0 PROFILENAME"
+    echo "Loads a tmux profile from $SCRIPTDIR"
+    echo
+    echo "Available profiles:"
+    ls "$SCRIPTDIR"
+    exit 1
+fi
+
+FILENAME="$SCRIPTDIR/$1"
+
+if [[ ! -e $FILENAME ]]; then
+    echo "Profile $1 not found"
+    exit 1
+fi
+
+tmux source "$FILENAME"
