@@ -1,4 +1,15 @@
 #!/bin/bash
+# Sources tmux scripts from a predefined location
+# This is a super super simple session/tmux window manager
+#
+# Example script:
+#
+# # 3 pane layout with vim open in the main pane
+# new-window -n "example" -c "~/myproject" "vim foo"
+# split-window
+# split-window
+# select-layout main-vertical
+
 SCRIPTDIR="$HOME/.tmux/scripts"
 
 if [[ -z $1 ]]; then
