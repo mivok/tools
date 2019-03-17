@@ -1,0 +1,11 @@
+#!/usr/bin/env osascript
+# Set the active iterm2 window size
+# Example: iterm_resize 161 52
+on run argv
+    tell application "iTerm2"
+        tell current session of current window
+            set columns to item 1 of argv
+            set rows to item 2 of argv
+        end tell
+    end tell
+end
