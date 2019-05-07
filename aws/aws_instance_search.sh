@@ -120,6 +120,6 @@ aws ec2 describe-instances \
             [
                 .InstanceId,
                 .'"$IPATTR"',
-                [.Tags[] | select(.Key == "Name") | .Value][0]
+                [.Tags // [] | .[] | select(.Key == "Name") | .Value][0]
             ]
         ] | sort_by(.[2]) | .[] | @tsv'
