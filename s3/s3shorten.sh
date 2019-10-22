@@ -92,6 +92,7 @@ delete_link() {
 create_link() {
     echo "Creating short link $2 for $1"
     aws --profile "$PROFILE" s3api put-object --bucket "$BUCKET" --key "$2" \
+        --acl public-read \
         --website-redirect-location "$1"
 }
 
