@@ -1,0 +1,13 @@
+#!/usr/bin/env jq -rf
+# Implementation of catj in jq
+# from https://news.ycombinator.com/item?id=20245913
+tostream
+| select(length > 1)
+| (
+  .[0] | map(
+    if type == "number"
+    then "[" + tostring + "]"
+    else "." + .
+    end
+  ) | join("")
+) + " = " + (.[1] | @json)
