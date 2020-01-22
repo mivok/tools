@@ -114,7 +114,8 @@ if [[ (-n $REVERSE_IP_DISPLAY && $FILTERKEY != "ip-address") ||
 fi
 
 aws ec2 describe-instances \
-    --filters "Name=$FILTERKEY,Values=$PATTERN" | \
+    --filters "Name=$FILTERKEY,Values=$PATTERN" \
+    "Name=instance-state-name,Values=running" | \
     jq -r '[
         .Reservations[].Instances[] |
             [
