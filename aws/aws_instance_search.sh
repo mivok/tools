@@ -98,7 +98,7 @@ if [[ -z $FILTERKEY || $FILTERKEY == "auto" ]]; then
         FILTERKEY="instance-id"
     elif [[ $PATTERN =~ ^(172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.|192\.168\.) ]]; then
         FILTERKEY="private-ip-address"
-    elif [[ $PATTERN =~ [0-9.] ]]; then
+    elif [[ $PATTERN =~ ^[0-9.]$ ]]; then
         FILTERKEY="ip-address"
     fi
 fi
