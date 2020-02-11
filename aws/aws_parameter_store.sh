@@ -6,6 +6,7 @@ usage() {
     echo "  -r -- Specify the AWS region to use"
     echo "  -p -- Specify an AWS profile to use"
     echo "  -l -- Loop through fzf commands until nothing is selected"
+    echo "  -c -- Copy values to the clipboard instead of printing them"
     echo
     echo "Commands:"
     echo
@@ -34,11 +35,22 @@ get_param() {
         FILTER='.Parameter.Value'
     fi
 
-    aws ssm get-parameter --name "$1" --with-decryption | jq -r "$FILTER"
+    if [[ -n $USE_CLIPBOARD ]]; then
+        aws ssm get-parameter --name "$1" --with-decryption | \
+            jq -r "$FILTER" | tr -d '\n' | pbcopy
+        echo "[Value has been copied to the clipboard]"
+    else
+        aws ssm get-parameter --name "$1" --with-decryption | jq -r "$FILTER"
+    fi
 }
 
 find_param() {
     PARAMS="$(list_params "$@")"
+
+    if [[ -z $PARAMS ]]; then
+        echo "No parameters found. Exiting."
+        exit 1
+    fi
 
     while true; do
         PARAM="$(echo "$PARAMS" | fzf)"
@@ -67,8 +79,11 @@ find_param() {
 # Main script starts here
 VERBOSE=
 LOOP=
-while getopts ":lp:r:v" opt; do
+USE_CLIPBOARD=
+while getopts ":clp:r:v" opt; do
     case $opt in
+        c)  USE_CLIPBOARD=1
+            ;;
         p)  export AWS_PROFILE="$OPTARG"
             ;;
         r)  export AWS_DEFAULT_REGION="$OPTARG"
