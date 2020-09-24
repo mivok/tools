@@ -69,7 +69,7 @@ usage() {
     echo "  $0 URL [KEY] -- Shorten URL"
     echo "  $0 -r KEY    -- Remove shortened URL"
     echo "  $0 -l        -- List shortened URLs"
-    exit -1
+    exit 254
 }
 
 list_links() {
@@ -78,20 +78,21 @@ list_links() {
         jq -r .Contents[].Key)
     for k in $KEYS; do
         echo -n "$k => "
-        aws --profile "$PROFILE" s3api head-object --bucket "$BUCKET" \
-            --key "$k" | \
+        aws --no-cli-pager --profile "$PROFILE" s3api head-object \
+            --bucket "$BUCKET" --key "$k" | \
             jq -r .WebsiteRedirectLocation
     done
 }
 
 delete_link() {
     echo "Deleting: $1"
-    aws --profile "$PROFILE" s3 rm "s3://$BUCKET/$1"
+    aws --no-cli-pager --profile "$PROFILE" s3 rm "s3://$BUCKET/$1"
 }
 
 create_link() {
     echo "Creating short link $2 for $1"
-    aws --profile "$PROFILE" s3api put-object --bucket "$BUCKET" --key "$2" \
+    aws --profile "$PROFILE" --no-cli-pager s3api put-object \
+        --bucket "$BUCKET" --key "$2" \
         --acl public-read \
         --website-redirect-location "$1"
 }
