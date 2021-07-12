@@ -1,19 +1,28 @@
 #!/usr/bin/env bash
-# Deletes an AMI along with its associated snapshot
+# Deletes an AMI or several AMIs along with their associated snapshots
 
 FORCE_YES=
 REGION=
 
 usage() {
-    echo "Usage: $0 [-y] [-r REGION] AMI_ID"
+    echo "Usage: $0 [-y] [-p PROFILE] [-r REGION] AMI_ID|SEARCH_TERM"
+    echo ""
+    echo "Deletes an AMI along with its snapsnot, or deletes all AMIs matching"
+    echo "the given search term."
+    echo
+    echo "If the pattern begins with 'ami-', then it's treated as a single"
+    echo "AMI. Otherwise, all AMIs named with the search term will be"
+    echo "deleted instead."
     exit 254
 }
 
-while getopts ":yr:" opt; do
+while getopts ":yp:r:" opt; do
     case $opt in
         y)  FORCE_YES=1
             ;;
         r)  REGION="$OPTARG"
+            ;;
+        p)  export AWS_PROFILE="$OPTARG"
             ;;
         :)  echo "Option missing required argument -- '$OPTARG'" 
             usage
@@ -41,24 +50,37 @@ confirm() {
     [[ $REPLY =~ ^[Yy]$ ]]
 }
 
-AMI=$1
-
 OPTS=()
 if [[ -n $REGION ]]; then
     OPTS+=(--region "$REGION")
 fi
 
-SNAPS=$(aws "${OPTS[@]}" ec2 describe-images --image-ids="$AMI" | \
-    jq -r '.Images[].BlockDeviceMappings[].Ebs.SnapshotId')
+if [[ "$1" =~ ^ami- ]]; then
+    FILTER_OPT="--image-ids=$1"
+else
+    FILTER_OPT="--filters=Name=name,Values=*$1*"
+fi
 
-echo "=> Found snapshots for ami $AMI: $SNAPS"
+MATCHES=$(aws "${OPTS[@]}" ec2 describe-images --owners self "$FILTER_OPT" |
+    jq -r '.Images[] | [.ImageId, .Name] | @tsv')
 
-echo "=> Deleting AMI $AMI"
+echo "=> Will delete the following AMIs"
+echo "$MATCHES"
 confirm || exit 1
-aws "${OPTS[@]}" ec2 deregister-image --image-id "$AMI"
 
-for SNAP in $SNAPS; do
-    echo "=> Deleting snapshot $SNAP"
-    confirm || exit 1
-    aws "${OPTS[@]}" ec2 delete-snapshot --snapshot-id "$SNAP"
-done
+while IFS=$'\t' read -r AMI NAME; do
+    echo "=> Deleting AMI $AMI ($NAME)"
+
+    SNAPS=$(aws "${OPTS[@]}" ec2 describe-images --image-ids="$AMI" | \
+        jq -r '.Images[].BlockDeviceMappings[].Ebs.SnapshotId')
+
+    echo "===> Found snapshots for ami $AMI: $SNAPS"
+
+    echo "===> Deregistering $AMI"
+    aws "${OPTS[@]}" ec2 deregister-image --image-id "$AMI"
+
+    for SNAP in $SNAPS; do
+        echo "===> Deleting snapshot $SNAP"
+        aws "${OPTS[@]}" ec2 delete-snapshot --snapshot-id "$SNAP"
+    done
+done <<< "$MATCHES"
