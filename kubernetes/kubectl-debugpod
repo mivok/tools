@@ -1,0 +1,91 @@
+#!/bin/bash
+# Command to quickly get a 'debug' pod running, giving you an interactive shell
+# on a new pod based on an existing kubernetes resource.
+#
+# This command:
+#
+# * Gets the podspec for an existing resource
+# * Modifies the command to run a shell
+# * Enables stdin and tty options
+# * Creates a new pod based on this modified podspec
+# * Attaches to the pod interactively
+# * Deletes the pod once you exit the shell
+#
+# Caveats:
+#
+# * Only the first container in a pod has its command modified, and it is the
+# one that is attached. If you have multiple containers running in a pod, you
+# might run into issues.
+# * It is possible for a pod to not be cleaned up if you don't exit the shell
+# cleanly (e.g. your computer shuts down). If this happens, you may have to
+# delete the pod manually.
+set -euo pipefail
+
+TYPE="${1:-}"
+NAME="${2:-}"
+COMMAND="${3:-/bin/sh}"
+
+if [[ -z "$TYPE" || -z "$NAME" ]]; then
+    echo "Usage: $0 TYPE NAME [COMMAND]"
+    echo
+    echo "Create a debug pod based off of an existing resource, attach to it,"
+    echo "then delete the pod afterwards."
+    echo
+    echo "Supported types:"
+    echo "  job"
+    echo "  cronjob"
+    echo "  deployment"
+    echo "  pod"
+    echo
+    echo "By default, /bin/sh is run and you are dropped into a shell. Specify"
+    echo "the full path as the third argument to run an alternative command."
+    exit 1
+fi
+PODNAME="$NAME-debug-$(date +%Y%m%d%H%M%S)"
+
+case "$TYPE" in
+    pod)
+        PODSPEC_PATH=".spec"
+        ;;
+    deployment)
+        PODSPEC_PATH=".spec.template.spec"
+        ;;
+    job)
+        PODSPEC_PATH=".spec.template.spec"
+        ;;
+    cronjob)
+        PODSPEC_PATH=".spec.jobTemplate.spec.template.spec"
+        ;;
+    *)
+        echo "Unsupported resource type: $TYPE"
+        exit 1
+esac
+
+echo "=> Pod name $PODNAME"
+echo "=> Creating pod"
+kubectl get "$TYPE" "$NAME" -o json | jq '{
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+        "name": "'"$PODNAME"'"
+    },
+    "spec": (
+        '"$PODSPEC_PATH"'
+            | .containers[0].command = ["'"$COMMAND"'"]
+            | .containers[0].tty = true
+            | .containers[0].stdin = true
+    )
+}' | kubectl apply -f -
+
+echo "=> Waiting for pod to be ready"
+kubectl wait --for=condition=Ready pod/"$PODNAME" || {
+    echo "=> Pod didn't become ready, deleting it"
+    kubectl delete pod "$PODNAME"
+    exit 1
+}
+
+echo "=> Attaching to pod"
+kubectl attach -it "$PODNAME"
+
+echo "=> Deleting pod"
+kubectl delete pod "$PODNAME"
