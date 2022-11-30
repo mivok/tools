@@ -18,7 +18,7 @@ if [[ -z "$SOURCE" || -z "$PKG" ]]; then
 fi
 
 ABSOLUTE_SOURCE="$(cd "$(dirname "$SOURCE")" && pwd)/$(basename "$SOURCE")"
-DEST_DIR="${PKG}/${ABSOLUTE_SOURCE#"$HOME"/}" # Source file relative to home dir
+DEST_DIR="$(dirname ${PKG}/${ABSOLUTE_SOURCE#"$HOME"/})"
 
 # Make sure the destination directory exists
 echo "=> Making directory $DEST_DIR"
