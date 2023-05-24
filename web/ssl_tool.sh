@@ -43,7 +43,8 @@ fi
 
 echo "==> $HOST"
 
-CERT_OUT="$(echo | openssl s_client -connect "$HOST:$PORT" 2>/dev/null)"
+CERT_OUT="$(echo | openssl s_client -servername "$HOST" \
+    -connect "$HOST:$PORT" 2>/dev/null)"
 
 echo "$CERT_OUT" | \
     openssl x509 -noout "${FORMAT_ARGS[@]}" | \
