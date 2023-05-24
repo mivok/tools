@@ -36,6 +36,7 @@
 EXACTMATCH=
 REVERSE_IP_DISPLAY=
 FILTERKEY=
+ALL_INSTANCES=
 
 usage() {
     echo "Usage: $0 [-r REGION] [-p PROFILE] PATTERN"
@@ -45,6 +46,7 @@ usage() {
     echo "  -r REGION    -- Specify AWS region (Default: $AWS_DEFAULT_REGION)"
     echo "  -p PROFILE   -- Specify credentials profile (Default: $AWS_PROFILE)"
     echo "  -f FILTERKEY -- What to filter on (Default: auto)"
+    echo "  -a           -- Search all instances (Default: running instances)"
     echo "  -i           -- Display Public IP Address (Default: private)"
     echo "  -x           -- Only return exact matches (Default: partial)"
     echo
@@ -60,8 +62,10 @@ usage() {
     echo "default, and the meaning of -i is reversed."
 }
 
-while getopts ":f:hip:r:x" opt; do
+while getopts ":af:hip:r:x" opt; do
     case $opt in
+        a)  ALL_INSTANCES=1
+            ;;
         f)  FILTERKEY="$OPTARG"
             ;;
         p)  export AWS_PROFILE="$OPTARG"
@@ -113,9 +117,15 @@ if [[ (-n $REVERSE_IP_DISPLAY && $FILTERKEY != "ip-address") ||
     IPATTR="PublicIpAddress"
 fi
 
+FILTERS=(
+    "Name=$FILTERKEY,Values=$PATTERN"
+)
+
+if [[ "$ALL_INSTANCES" != "1" ]]; then
+    FILTERS=("${FILTERS[@]}" "Name=instance-state-name,Values=running")
+fi
 aws ec2 describe-instances \
-    --filters "Name=$FILTERKEY,Values=$PATTERN" \
-    "Name=instance-state-name,Values=running" | \
+    --filters "${FILTERS[@]}" | \
     jq -r '[
         .Reservations[].Instances[] |
             [
