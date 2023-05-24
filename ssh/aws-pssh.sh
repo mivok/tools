@@ -4,6 +4,7 @@
 EXACTMATCH=
 REVERSE_IP_SELECTION=
 FILTERKEY=
+SSH_OPTS=()
 
 usage() {
     echo "Usage: $0 [-r REGION] [-p PROFILE] PATTERN COMMAND..."
@@ -14,6 +15,8 @@ usage() {
     echo "  -p PROFILE   -- Specify credentials profile (Default: $AWS_PROFILE)"
     echo "  -f FILTERKEY -- What to filter on (Default: auto)"
     echo "  -i           -- Connect to public IP Address (Default: private)"
+    echo "  -O           -- Additional ssh options to pass to pssh"
+    echo "                  this option can be passed multiple times"
     echo "  -x           -- Only return exact matches (Default: partial)"
     echo
     echo "Run 'aws ec2 describe instances help' to view available filter keys"
@@ -28,9 +31,12 @@ usage() {
     echo "default, and the meaning of -i is reversed."
 }
 
-while getopts ":f:hip:r:x" opt; do
+while getopts ":f:hiO:p:r:x" opt; do
     case $opt in
         f)  FILTERKEY="$OPTARG"
+            ;;
+        O)
+            SSH_OPTS+=(-O "$OPTARG")
             ;;
         p)  export AWS_PROFILE="$OPTARG"
             ;;
@@ -95,6 +101,7 @@ fi
 
 pssh \
     -O 'StrictHostKeyChecking no' \
+    "${SSH_OPTS[@]}" \
     --host "$HOSTS" \
     --par 5\
     --timeout 3600 \
