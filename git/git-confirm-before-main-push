@@ -1,0 +1,31 @@
+#!/bin/bash
+GITDIR="$(git rev-parse --git-dir)"
+HOOKDIR="$GITDIR/hooks"
+HOOKFILE="$HOOKDIR/pre-push"
+if [[ -f "$HOOKFILE" ]]; then
+    echo "$HOOKFILE already exists. Not overwriting."
+    exit 1
+fi
+mkdir -p "$HOOKDIR"
+cat > "$HOOKFILE" <<'EOF'
+#!/bin/bash
+# Warn before pushing to protected branches
+# Make script executable with chmod +x pre-push
+# Bypass with git push --no-verify
+PROTECTED_REFS="^refs/heads/(main|master|dev|release-*|patch-*)"
+
+while read -r REF _SHA _RREF _RSHA; do
+    if [[ "$REF" =~ $PROTECTED_REFS ]]; then
+      echo -n "Are you sure you want to push to \"$REF\"? (y/n): "
+      read -r < /dev/tty
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+        exit 0
+      fi
+      echo "Push aborted."
+      exit 1
+    fi
+done
+exit 0
+EOF
+chmod +x "$HOOKFILE"
+echo "Pre-push hook installed to $HOOKFILE"
