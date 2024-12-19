@@ -4,6 +4,9 @@
 import json
 import sys
 
+# All files are tagged with the remaining arguments on the command line
+default_tags = sys.argv[2:]
+
 with open(sys.argv[1]) as fh:
     tiddlers = json.load(fh)
 
@@ -17,8 +20,8 @@ for tiddler in tiddlers:
     print(filename)
     with open(filename, 'w') as fh:
         fh.write(tiddler.get('text', ''))
+        tags = [] + default_tags
         if 'tags' in tiddler:
-            tags = []
             in_multi_tag = False
             curr_tag = ''
             for tag_part in tiddler['tags'].split():
@@ -30,11 +33,11 @@ for tiddler in tiddlers:
                         tags.append(curr_tag)
                         in_multi_tag = False
                     else:
-                        curr_tag = curr_tag + ' ' + tag_part
+                        curr_tag = curr_tag + '_' + tag_part
                 elif tag_part.startswith('[['):
                     curr_tag = tag_part.lstrip('[[')
                     in_multi_tag = True
                 else:
                     tags.append(tag_part)
-            fh.write("\n\n")
-            fh.write(' '.join([f"#{tag}" for tag in tags]))
+        fh.write("\n\n")
+        fh.write(' '.join([f"#{tag}" for tag in tags]))
