@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+# /// script
+# dependencies = ['toml']
+# ///
 # Takes in toml, dumps it out as json
 # Run pip install toml to install the toml module
 import json
