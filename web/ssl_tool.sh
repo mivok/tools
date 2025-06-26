@@ -1,8 +1,8 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage: $0 [OPTIONS] HOSTNAME"
-    echo "Prints out TLS certificate information for a host"
+    echo "Usage: $0 [OPTIONS] HOSTNAME|FILENAME"
+    echo "Prints out TLS certificate information for a host or certificate file"
     echo
     echo "Options:"
     echo "  -a -- Print out all certificate information"
@@ -36,15 +36,20 @@ while getopts ":aep:" opt; do
 done
 shift $((OPTIND-1))
 
-HOST="$1"
-if [[ -z "$HOST" ]]; then
+HOST_OR_FILE="$1"
+if [[ -z "$HOST_OR_FILE" ]]; then
     usage
 fi
 
-echo "==> $HOST"
-
-CERT_OUT="$(echo | openssl s_client -servername "$HOST" \
-    -connect "$HOST:$PORT" 2>/dev/null)"
+echo "==> $HOST_OR_FILE"
+if [[ -e "$HOST_OR_FILE" || "$HOST_OR_FILE" =~ .*\.(pem|crt) ]]; then
+    # We have a file
+    CERT_OUT="$(cat "$HOST_OR_FILE")"
+else
+    # We have a hostname
+    CERT_OUT="$(echo | openssl s_client -servername "$HOST_OR_FILE" \
+        -connect "$HOST_OR_FILE:$PORT" 2>/dev/null)"
+fi
 
 echo "$CERT_OUT" | \
     openssl x509 -noout "${FORMAT_ARGS[@]}" | \
