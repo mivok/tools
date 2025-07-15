@@ -1,0 +1,38 @@
+#!/bin/bash
+# Run a quick throwaway pod with kubernetes
+
+usage() {
+    echo "Usage: $0 [-p podname_prefix] [image_or_alias]" >&2
+    echo
+    echo "Valid aliases:" >&2
+    echo "    alpine, ubuntu, debian, centos, fedora, busybox, netshoot" >&2
+    echo "Or provide a full image name (e.g. 'nginx:latest', 'alpine:3.15')" >&2
+    echo
+    echo "Default image: netshoot (nicolaka/netshoot)" >&2
+    exit 1
+}
+
+PODNAME_PREFIX="throwaway"
+while getopts "p:" opt; do
+    case $opt in
+        p) PODNAME_PREFIX="$OPTARG" ;;
+        *) usage ;;
+    esac
+done
+shift $((OPTIND -1))
+
+IMAGE="${1:-netshoot}"
+case "$IMAGE" in
+    alpine) IMAGE="alpine" ;;
+    ubuntu) IMAGE="ubuntu" ;;
+    debian) IMAGE="debian" ;;
+    centos) IMAGE="centos" ;;
+    fedora) IMAGE="fedora" ;;
+    busybox) IMAGE="busybox" ;;
+    netshoot) IMAGE="nicolaka/netshoot" ;;
+esac
+
+POD_NAME="${PODNAME_PREFIX}-$(date +%Y%m%d%H%M%S)"
+
+echo "Starting throwaway pod '$POD_NAME' with image '$IMAGE'..."
+kubectl run -it --rm --image="$IMAGE" --restart=Never "$POD_NAME"
