@@ -4,7 +4,7 @@
 # You can specify the subscripton. If you leave out the subscription, it will
 # use the current subscription.
 
-if [ -z "$1" ]; then
+usage() {
   echo "Usage: $0 [OPTIONS...]"
   echo
   echo "Options:"
@@ -12,7 +12,10 @@ if [ -z "$1" ]; then
   echo "  -g, --resource-group RESOURCE_GROUP  Specify the resource group"
   echo "  -c, --cluster-name CLUSTER_NAME      Specify the AKS cluster name"
   echo
+  echo "  -f, --force             Don't skip existing kubeconfig files"
+  echo "  -h, --help              Show this help message and exit"
   echo "  -n, --dry-run           Show what would be run without executing it"
+  echo "  --no-convert-kubeconfig Do not convert kubeconfig to use azurecli"
   echo
   echo "If you do not specify a cluster name, the script will loop through all"
   echo "clusters in the specified subscription and set up kubeconfigs for each."
@@ -23,15 +26,29 @@ if [ -z "$1" ]; then
   echo
   echo "If you specify a cluster name, but not a resource group, the script"
   echo "will assume the resource group is the same as the cluster name."
+  echo
+  echo "If you do not include the --no-convert-kubeconfig flag then the script"
+  echo "will also convert the kubeconfig to use azurecli authentication,"
+  echo "which lets you run 'az login' to authenticate to the cluster and not"
+  echo "have to copy and paste a device code into the browser."
   exit 1
-fi
+}
 
 DRY_RUN=
+DONT_CONVERT_KUBECONFIG=
+FORCE=
 
 while [[ "$1" == -* ]]; do
     case "$1" in
+        --help|-h)
+            usage
+            ;;
         --dry-run|-n)
             DRY_RUN=1
+            shift
+            ;;
+        --force|-f)
+            FORCE=1
             shift
             ;;
         --resource-group|-g)
@@ -46,6 +63,10 @@ while [[ "$1" == -* ]]; do
             SUBSCRIPTION="$2"
             shift 2
             ;;
+        --no-convert-kubeconfig)
+            export DONT_CONVERT_KUBECONFIG=1
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
             exit 1
@@ -59,20 +80,36 @@ setup_aks_config() {
     local RESOURCE_GROUP="$3"
     echo "## Setting up kubeconfig for cluster: $CLUSTER_NAME"
 
-    KUBE_CONFIG_FILE="$HOME/.kube/$CLUSTER_NAME.config"
+    export KUBECONFIG="$HOME/.kube/$CLUSTER_NAME.config"
+
+    if [[ -z "$FORCE" && -f "$KUBECONFIG" ]]; then
+        echo "Kubeconfig file $KUBECONFIG already exists, skipping."
+        echo "Use --force to overwrite."
+        return
+    fi
 
     CMD=(
         az aks get-credentials
         --subscription "$SUBSCRIPTION"
         --resource-group "$RESOURCE_GROUP"
         --name "$CLUSTER_NAME"
-        --file "$KUBE_CONFIG_FILE"
+        --file "$KUBECONFIG"
     )
 
     if [[ -n "$DRY_RUN" ]]; then
         echo "${CMD[@]}"
     else
         "${CMD[@]}"
+    fi
+
+    if [[ -z "$DONT_CONVERT_KUBECONFIG" ]]; then
+        echo "## Converting kubeconfig to use azurecli authentication"
+        CONVERT_CMD=(kubelogin convert-kubeconfig -l azurecli)
+        if [[ -n "$DRY_RUN" ]]; then
+            echo "${CONVERT_CMD[@]}"
+        else
+            "${CONVERT_CMD[@]}"
+        fi
     fi
 }
 
