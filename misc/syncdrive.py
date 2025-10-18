@@ -75,6 +75,7 @@ default_args = [
     "--max-lock", "2m",
     "--conflict-resolve", "newer",
     "--links",
+    "--progress",
 ]
 
 # Run the rclone bisync command
