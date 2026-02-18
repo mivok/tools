@@ -33,7 +33,7 @@ from pathlib import Path
 from plumbum import local, RETCODE
 
 # Configurable paths and names
-remote_name = os.environ.get("SYNCDRIVE_REMOTE", "minio-syncdrive")
+remote_name = os.environ.get("SYNCDRIVE_REMOTE", "syncdrive")
 alias_name = "SyncDrive"
 sync_dir = Path(os.environ.get("SYNC_DIR", Path.home() / "SyncDrive"))
 
@@ -50,11 +50,11 @@ remotes = rclone("listremotes").splitlines()
 if f"{remote_name}:" not in remotes:
     key = input("AWS Access Key ID: ").strip()
     secret = getpass("AWS Secret Access Key: ").strip()
-    endpoint = input("S3 Endpoint (e.g. https://minio.example.com): ").strip()
+    endpoint = input("S3 Endpoint (e.g. https://s3.example.com): ").strip()
 
     rclone[
         "config", "create", remote_name, "s3",
-        "provider", "Minio",
+        "provider", "Other",
         "access_key_id", key,
         "secret_access_key", secret,
         "endpoint", endpoint,
